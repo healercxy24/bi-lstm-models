@@ -217,32 +217,30 @@ def get_dataset(dataset_name, seq_len1, target_len, seq_len2):
     label_tensor1 = torch.tensor(train_label1)   # torch.Size([20581])
     label_tensor1 = label_tensor1.float().to(device)
     
-    # generate seq for lower model
-    train_data = pca(train_data, 4)     
-    seq_array1 = list(gen_sequence1(train_data, seq_len1, target_len))  
-    seq_tensor1 = torch.tensor(seq_array1)    # [20581, 50, 18]
-    seq_tensor1 = seq_tensor1.float().to(device)   
-
-    
-    #split the new dataset
-    train_seq_tensor1 = seq_tensor1[0:16000,:].to(device)  # [16000, 50, 18]
-    train_label_tensor1 = label_tensor1[0:16000].to(device)
-    valid_seq_tensor1 = seq_tensor1[16000:,: ].to(device)  # [4581, 50, 18]
-    valid_label_tensor1 = label_tensor1[16000:].to(device)
-    
-    
-    
     # generate labels for upper model
     train_label2 = list(gen_labels2(train_data, seq_len1, target_len))
     train_label2 = np.array(train_label2)
     label_tensor2 = torch.tensor(train_label2)   # torch.Size([20581])
     label_tensor2 = label_tensor2.float().to(device)
     
-    # generate seq for upper model
+    
+    # generate seq for lower model
     train_data = pca(train_data, 4)     
-    seq_array2 = list(gen_sequence2(train_data, seq_len1, target_len, seq_len2))  
+    seq_array1 = list(gen_sequence1(train_data, seq_len1, target_len))  
     seq_tensor1 = torch.tensor(seq_array1)    # [20581, 50, 18]
     seq_tensor1 = seq_tensor1.float().to(device)   
+    
+    # generate seq for upper model  
+    seq_array2 = list(gen_sequence2(train_data, seq_len1, target_len, seq_len2))  
+    seq_tensor2 = torch.tensor(seq_array2)    # [20581, 50, 18]
+    seq_tensor2 = seq_tensor2.float().to(device)  
+    
+    
+    #split the new dataset
+    train_seq_tensor1 = seq_tensor1[0:16000,:].to(device)  # [16000, 50, 18]
+    train_label_tensor1 = label_tensor1[0:16000].to(device)
+    valid_seq_tensor1 = seq_tensor1[16000:,: ].to(device)  # [4581, 50, 18]
+    valid_label_tensor1 = label_tensor1[16000:].to(device)
 
     
     #split the new dataset
