@@ -76,7 +76,7 @@ class UpperLSTM(nn.Module):
         self.BN = nn.BatchNorm1d(input_size) # with learnable parameters
         
         self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, 
-                            num_layers=lstm_num_layers, batch_first=True, dropout=self.lstm_dropout)
+                            num_layers=lstm_num_layers, dropout=self.lstm_dropout)
             
         self.fc_1 = nn.Linear(hidden_size, 140)
         self.BN_1 = nn.BatchNorm1d(140)
@@ -105,12 +105,12 @@ class UpperLSTM(nn.Module):
     def forward(self, x):
         """
         
-        :param x: input features [batch_size, sequence_length * input_size]
+        :param x: input features [sequence_length, batch_size, input_size]
         :return: predictions results
         """
 
         x = self.BN(x)  
-        out, _ = self.lstm(x) # [batch_size, seq_len, hidden_size]
+        out, _ = self.lstm(x) # [seq_len, batch_size, hidden_size]
         #x = self.BN(x)
         
         # out = self.relu(output)

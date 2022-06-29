@@ -171,7 +171,7 @@ def gen_sequence1(data, seq_len1, target_len):
 def gen_labels1(data, seq_len1, target_len):
     
     num_elements = data.shape[0]
-    for start, stop in zip(range(seq_len1, num_elements - target_len), range(num_elements - target_len, num_elements)):
+    for start, stop in zip(range(seq_len1, num_elements - target_len), range(seq_len1 + target_len, num_elements)):
         yield data[start:stop, :]
 
 # generate the sequence for upper model
@@ -184,8 +184,9 @@ def gen_sequence2(data, seq_len1, target_len, seq_len2):
 def gen_labels2(data, seq_len1, target_len, seq_len2):
     
     num_elements = data.shape[0]
-    for start, stop in zip(range(seq_len1 + target_len - seq_len2, num_elements - seq_len2), range(seq_len1 + target_len, num_elements)):
-        yield data[start:stop]
+    #for start, stop in zip(range(seq_len1 + target_len - seq_len2, num_elements - seq_len2), range(seq_len1 + target_len, num_elements)):
+    for i in range(seq_len1, num_elements - target_len):
+        yield data[i]
 
 
 #%% get processed dataset
@@ -209,23 +210,24 @@ testing set:
 def get_dataset(dataset_name, seq_len1, target_len, seq_len2):   
     
     train_data, train_label, test_data, test_label = dataset_process(dataset_name)  
+    train_data = pca(train_data, 4)
+    test_data = pca(test_data, 4)
     
     '''generate sequences for trainset'''   
     # generate labels for lower model
     train_label1 = list(gen_labels1(train_data, seq_len1, target_len))
     train_label1 = np.array(train_label1)
-    label_tensor1 = torch.tensor(train_label1)   # torch.Size([20581])
+    label_tensor1 = torch.tensor(train_label1)
     label_tensor1 = label_tensor1.float().to(device)
     
     # generate labels for upper model
-    train_label2 = list(gen_labels2(train_data, seq_len1, target_len))
+    train_label2 = list(gen_labels2(train_label, seq_len1, target_len, seq_len2))
     train_label2 = np.array(train_label2)
     label_tensor2 = torch.tensor(train_label2)   # torch.Size([20581])
     label_tensor2 = label_tensor2.float().to(device)
     
     
-    # generate seq for lower model
-    train_data = pca(train_data, 4)     
+    # generate seq for lower model    
     seq_array1 = list(gen_sequence1(train_data, seq_len1, target_len))  
     seq_tensor1 = torch.tensor(seq_array1)    # [20581, 50, 18]
     seq_tensor1 = seq_tensor1.float().to(device)   
@@ -235,32 +237,45 @@ def get_dataset(dataset_name, seq_len1, target_len, seq_len2):
     seq_tensor2 = torch.tensor(seq_array2)    # [20581, 50, 18]
     seq_tensor2 = seq_tensor2.float().to(device)  
     
-    
-    #split the new dataset
-    train_seq_tensor1 = seq_tensor1[0:16000,:].to(device)  # [16000, 50, 18]
-    train_label_tensor1 = label_tensor1[0:16000].to(device)
-    valid_seq_tensor1 = seq_tensor1[16000:,: ].to(device)  # [4581, 50, 18]
-    valid_label_tensor1 = label_tensor1[16000:].to(device)
+    total_len = seq_tensor1.shape[0]
+    train_len = int(total_len*0.8)
+    #split the new dataset for lower model
+    train_seq_tensor1 = seq_tensor1[0:train_len,:].to(device)  # [16000, 50, 18]
+    train_label_tensor1 = label_tensor1[0:train_len,:].to(device)
+    valid_seq_tensor1 = seq_tensor1[train_len:,:].to(device)  # [4581, 50, 18]
+    valid_label_tensor1 = label_tensor1[train_len:,:].to(device)
 
     
     #split the new dataset
-    train_seq_tensor1 = seq_tensor1[0:16000,:].to(device)  # [16000, 50, 18]
-    train_label_tensor1 = label_tensor1[0:16000].to(device)
-    valid_seq_tensor1 = seq_tensor1[16000:,: ].to(device)  # [4581, 50, 18]
-    valid_label_tensor1 = label_tensor1[16000:].to(device)
+    train_seq_tensor2 = seq_tensor2[0:train_len,:].to(device)  # [16000, 50, 18]
+    train_label_tensor2 = label_tensor2[0:train_len].to(device)
+    valid_seq_tensor2 = seq_tensor2[train_len:,: ].to(device)  # [4581, 50, 18]
+    valid_label_tensor2 = label_tensor2[train_len:].to(device)
     
     
     '''process data for test dataset'''
-    # generate labels
-    test_label1 = list(gen_labels(test_label, seq_len))   # [13046]
-    test_label = np.array(test_label)
-    test_label_tensor = torch.tensor(test_label)
-    test_label_tensor = test_label_tensor.float().to(device)
+    # generate labels for lower model
+    test_label1 = list(gen_labels1(test_data, seq_len1, target_len))   # [13046]
+    test_label1 = np.array(test_label1)
+    test_label_tensor1 = torch.tensor(test_label1)
+    test_label_tensor1 = test_label_tensor1.float().to(device)
     
-    #test_data = pca(test_data, 8)
-    test_array = list(gen_sequence(test_data, seq_len))   # [13046]
-    test_seq_tensor = torch.tensor(test_array)
-    test_seq_tensor = test_seq_tensor.float().to(device) 
+    # generate labels for upper model
+    test_label2 = list(gen_labels2(test_label, seq_len1, target_len, seq_len2))   # [13046]
+    test_label2 = np.array(test_label2)
+    test_label_tensor2 = torch.tensor(test_label2)
+    test_label_tensor2 = test_label_tensor2.float().to(device)
+    
+    
+    # generate sequence for lower model
+    test_array1 = list(gen_sequence1(test_data, seq_len1, target_len))   # [13046]
+    test_seq_tensor1 = torch.tensor(test_array1)
+    test_seq_tensor1 = test_seq_tensor1.float().to(device) 
+    
+    # generate sequence for upper model
+    test_array2 = list(gen_sequence2(test_data, seq_len1, target_len, seq_len2))   # [13046]
+    test_seq_tensor2 = torch.tensor(test_array2)
+    test_seq_tensor2 = test_seq_tensor2.float().to(device) 
     
     
     dataset = {'lower_train_seq_tensor' : train_seq_tensor1,
@@ -279,9 +294,40 @@ def get_dataset(dataset_name, seq_len1, target_len, seq_len2):
     
     return dataset
 
+
 #%% get batch
 
-def get_batch(data_source, truth_source, i, batch_size):
+def get_batch1(data_source, truth_source, i, batch_size):
+
+    """
+
+    Args:
+
+        source: Tensor, shape [dataset_length, sequence_length, num_features]
+
+        i: int
+        
+        seq_len : size of sequence
+ 
+
+    Returns:
+
+        tuple (data, target), where data has shape [sequence_length, batch_size, num_features] and
+
+        target has shape [seq_len, batch_size]
+
+    """
+
+    data = data_source[i:i+batch_size, :]
+    data = data.view(-1, batch_size, data.shape[2]).contiguous()
+
+    target = truth_source[i:i+batch_size, :]
+    target = target.view(-1, batch_size, target.shape[2]).contiguous()
+
+    return data, target
+
+
+def get_batch2(data_source, truth_source, i, batch_size):
 
     """
 
